@@ -141,13 +141,14 @@ class KiwoomAPI(QAxWidget):
                 self.getBasicData(code)
                 self.getDayData(code)
             print("==========================================")
-            dfStock = pd.DataFrame(self.DATA_StockList, columns=['ticker','stock_name', 'change_amount_rate', 'per'])
+            dfStock = pd.DataFrame(self.DATA_StockList, columns=['ticker','stock_name', 'change_price_rate', 'per'])
             print(dfStock)
             dfDayTrade = pd.DataFrame(self.DATA_DayTradeList, columns=['ticker', 'price', 'trading_volume', 'trading_amount', 'trading_date'])
             print(dfDayTrade)
             dfMergeData = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
             print(dfMergeData.to_json(orient='records'))
             dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
+
         else:
             print("Fail getMyConditionData.")
 
