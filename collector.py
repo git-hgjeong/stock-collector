@@ -40,6 +40,9 @@ class KiwoomAPI(QAxWidget):
         self.OnReceiveTrCondition.connect(self.apiOnReceiveTrCondition)
         self.OnReceiveConditionVer.connect(self.apiOnReceiveConditionVer)
 
+        # 조건식에 해당하는 종목코드 조회결과 데이터
+        self.DATA_StockCodeList = []
+
     # 로그인 콜백함수
     def apiOnEventConnect(self, nErrCode):
         if nErrCode == 0:
@@ -59,7 +62,7 @@ class KiwoomAPI(QAxWidget):
             rate = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "등락율")
             per = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "PER")
             tp = (name.lstrip(), price.lstrip(), rate.lstrip(), per.lstrip())
-            #print(tp)
+            print(tp)
             self.DATA_StockList.append(tp)
         elif sRQName == 'GET-DAY-DATA':
 
@@ -72,21 +75,26 @@ class KiwoomAPI(QAxWidget):
             #high_price = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "고가")
             #low_price = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "저가")
             tp = (code.lstrip(), price.lstrip(), volume.lstrip(), trade_price.lstrip(), date.lstrip())
-            #print(tp)
+            print(tp)
             self.DATA_DayTradeList.append(tp)
         self.data_event_loop.exit()
 
     def apiOnReceiveTrCondition(self, scrno, codelist, conditionname, nindex, nnext):
-        #print(">> apiOnReceiveTrCondition")
-        arr = codelist.split(';')
-        arr.pop()
-        self.DATA_StockCodeList = arr
-        #print(arr)
+        #print(">> apiOnReceiveTrCondition ")
+        if codelist:
+            arr = codelist.split(';')
+            arr.pop()
+            self.DATA_StockCodeList = arr
+            print(">>>> 조건식 종목:"+ self.DATA_StockCodeList.size +" 개 확인.")
+            #print(arr)
+        else:
+            print("#### 조건식에 해당하는 종목이 없습니다. ####")
+
         self.data_event_loop.exit()
     def apiOnReceiveConditionVer(self):
         #print(">> 조건식 데이터 조회 완료")
         sConditionResult = self.dynamicCall("GetConditionNameList()")
-        #print(sConditionResult)
+        print(">>>> 조건식:"+ sConditionResult)
         # 세미콜론과 캐럿으로 구성된 CSV 형식으로 변환.
         csv_str = sConditionResult.replace(';', '\n').replace('^', ',')
         # 문자열을 DataFrame으로 변환.
@@ -150,12 +158,16 @@ class KiwoomAPI(QAxWidget):
             dfMergeData = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
             requestData = dfMergeData.to_json(orient='records')
             #print(requestData)
-            dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
+            if dfMergeData.size > 0:
+                dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
+            else:
+                print("#### Data not found. ####")
 
         else:
             print("Fail getMyConditionData.")
         # Transfer to API Server
-        self.addStockDataToApiServer(requestData)
+        if dfMergeData.size > 0:
+            self.addStockDataToApiServer(requestData)
 
     def addStockDataToApiServer(self, requestData):
         # URL
@@ -173,5 +185,6 @@ if __name__ == "__main__":
     kiwwom = KiwoomAPI()
     #kiwwom.getBasicData("005385")
     #kiwwom.getMyConditions()
-    # kiwwom.getDayData("005385")
+    #kiwwom.getDayData("005385")
+
     kiwwom.getMyConditionData('기본')
