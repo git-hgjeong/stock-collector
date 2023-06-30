@@ -75,17 +75,19 @@ class KiwoomAPI(QAxWidget):
             #high_price = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "고가")
             #low_price = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "저가")
             tp = (code.lstrip(), price.lstrip(), volume.lstrip(), trade_price.lstrip(), date.lstrip())
-            print(tp)
+            #print(tp)
             self.DATA_DayTradeList.append(tp)
         self.data_event_loop.exit()
 
     def apiOnReceiveTrCondition(self, scrno, codelist, conditionname, nindex, nnext):
-        #print(">> apiOnReceiveTrCondition ")
+        print(">> apiOnReceiveTrCondition ")
+        print(codelist)
         if codelist:
             arr = codelist.split(';')
             arr.pop()
             self.DATA_StockCodeList = arr
-            print(">>>> 조건식 종목:"+ self.DATA_StockCodeList.size +" 개 확인.")
+            print(self.DATA_StockCodeList)
+            print(">>>> 조건식 종목: ", len(self.DATA_StockCodeList), " 개 확인.")
             #print(arr)
         else:
             print("#### 조건식에 해당하는 종목이 없습니다. ####")
@@ -145,7 +147,7 @@ class KiwoomAPI(QAxWidget):
             self.data_event_loop = QEventLoop()
             self.data_event_loop.exec_()
 
-            #print(self.DATA_StockCodeList)
+            print(self.DATA_StockCodeList)
             for code in self.DATA_StockCodeList:
                 #print(code)
                 self.getBasicData(code)
@@ -157,7 +159,7 @@ class KiwoomAPI(QAxWidget):
             #print(dfDayTrade)
             dfMergeData = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
             requestData = dfMergeData.to_json(orient='records')
-            #print(requestData)
+            #print(dfMergeData)
             if dfMergeData.size > 0:
                 dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
             else:
