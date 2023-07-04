@@ -158,7 +158,7 @@ class KiwoomAPI(QAxWidget):
             dfDayTrade = pd.DataFrame(self.DATA_DayTradeList, columns=['ticker', 'price', 'trading_volume', 'trading_amount', 'trading_date'])
             #print(dfDayTrade)
             dfMergeData = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
-            requestData = dfMergeData.to_json(orient='records')
+
             #print(dfMergeData)
             if dfMergeData.size > 0:
                 dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
@@ -169,9 +169,10 @@ class KiwoomAPI(QAxWidget):
             print("Fail getMyConditionData.")
         # Transfer to API Server
         if dfMergeData.size > 0:
-            self.addStockDataToApiServer(requestData)
+            self.addStockDataToApiServer(dfMergeData)
 
-    def addStockDataToApiServer(self, requestData):
+    def addStockDataToApiServer(self, dfMergeData):
+        requestData = dfMergeData.to_json(orient='records')
         # URL
         url = "http://dev592.cafe24.com/stock/api/add.php"
         # headers
@@ -181,6 +182,8 @@ class KiwoomAPI(QAxWidget):
         response = requests.post(url, headers=headers, data=requestData)
         print("response: ", response)
         print("response.text: ", response.text)
+        url = "https://dev592.cafe24.com/stock/attentions.php?from_date="+ dfMergeData.at[0, 'trading_date'] +"&to_date="+ dfMergeData.at[0, 'trading_date']
+        print(url)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
