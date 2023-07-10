@@ -81,12 +81,14 @@ class KiwoomAPI(QAxWidget):
         elif sRQName.find('GET-PROGRAM-DATA') == 0:
             ticker = sRQName[sRQName.find('_')+1:]
             date = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "일자")
-            buy_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매도금액")
             buy_count = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매도수량")
-            sell_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매수금액")
             sell_count = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매수수량")
+            count = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0,
+                                          "프로그램순매수수량증감")
+            # buy_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매도금액")
+            # sell_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매수금액")
 
-            tp = (ticker, date.lstrip(), buy_amount.lstrip(), buy_count.lstrip(), sell_amount.lstrip(), sell_count.lstrip())
+            tp = (ticker, date.lstrip(), buy_count.lstrip(), sell_count.lstrip(), count.lstrip())
             print(tp)
             self.DATA_DayProgramData.append(tp)
 
@@ -186,7 +188,7 @@ class KiwoomAPI(QAxWidget):
             dfDayTrade = pd.DataFrame(self.DATA_DayTradeList, columns=['ticker', 'price', 'trading_volume', 'trading_amount', 'trading_date'])
             #print(dfDayTrade)
             dfDayProgramData = pd.DataFrame(self.DATA_DayProgramData,
-                                      columns=['ticker', 'program_trading_date', 'program_buy_amount', 'program_buy_count', 'program_sell_amount', 'program_sell_count'])
+                                      columns=['ticker', 'program_trading_date', 'program_buy_count', 'program_sell_count', 'program_count'])
             # print(dfDayProgramData)
 
             # data join
