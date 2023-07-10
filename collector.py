@@ -34,6 +34,7 @@ class KiwoomAPI(QAxWidget):
         # 데이터요청(CommRqData) 콜백함수 지정
         self.DATA_StockList = []
         self.DATA_DayTradeList = []
+        self.DATA_DayProgramData = []
         self.OnReceiveTrData.connect(self.apiOnReceiveTrData)
 
         # 조건식 콜백함수 지정
@@ -64,8 +65,8 @@ class KiwoomAPI(QAxWidget):
             tp = (name.lstrip(), price.lstrip(), rate.lstrip(), per.lstrip())
             print(tp)
             self.DATA_StockList.append(tp)
-        elif sRQName == 'GET-DAY-DATA':
 
+        elif sRQName == 'GET-DAY-DATA':
             code = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "종목코드")
             price = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "현재가")
             volume = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "거래량")
@@ -77,6 +78,18 @@ class KiwoomAPI(QAxWidget):
             tp = (code.lstrip(), price.lstrip(), volume.lstrip(), trade_price.lstrip(), date.lstrip())
             #print(tp)
             self.DATA_DayTradeList.append(tp)
+        elif sRQName.find('GET-PROGRAM-DATA') == 0:
+            ticker = sRQName[sRQName.find('_')+1:]
+            date = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "일자")
+            buy_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매도금액")
+            buy_count = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매도수량")
+            sell_amount = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매수금액")
+            sell_count = self.dynamicCall("GetCommData(QString, QString, int, QString)", sTrCode, sRQName, 0, "프로그램매수수량")
+
+            tp = (ticker, date.lstrip(), buy_amount.lstrip(), buy_count.lstrip(), sell_amount.lstrip(), sell_count.lstrip())
+            print(tp)
+            self.DATA_DayProgramData.append(tp)
+
         self.data_event_loop.exit()
 
     def apiOnReceiveTrCondition(self, scrno, codelist, conditionname, nindex, nnext):
@@ -130,6 +143,20 @@ class KiwoomAPI(QAxWidget):
         self.data_event_loop = QEventLoop()
         self.data_event_loop.exec_()
 
+    def getDayProgramData(self, stock_code):
+        # 연속 요청시 씹히는 문제 sleep 처리
+        time.sleep(0.2)
+        #print(">> 데이터요청:"+ stock_code)
+        # 검색조건
+        self.dynamicCall("SetInputValue(QString, QString)", "시간일자구분", "2")
+        self.dynamicCall("SetInputValue(QString, QString)", "금액수량구분", "2") # 1:금액, 2:수량
+        self.dynamicCall("SetInputValue(QString, QString)", "종목코드", stock_code)
+        self.dynamicCall("SetInputValue(QString, QString)", "날짜", None)
+        # 데이터 조회 실행
+        self.dynamicCall("CommRqData(QString, QString, QString, QString)", "GET-PROGRAM-DATA_"+ stock_code, "opt90013", "0", "0101")
+        self.data_event_loop = QEventLoop()
+        self.data_event_loop.exec_()
+
     def getMyConditions(self):
         self.dynamicCall("GetConditionLoad()")
         self.data_event_loop = QEventLoop()
@@ -152,14 +179,21 @@ class KiwoomAPI(QAxWidget):
                 #print(code)
                 self.getBasicData(code)
                 self.getDayData(code)
+                self.getDayProgramData(code)
             #print("==========================================")
             dfStock = pd.DataFrame(self.DATA_StockList, columns=['ticker','stock_name', 'change_price_rate', 'per'])
             #print(dfStock)
             dfDayTrade = pd.DataFrame(self.DATA_DayTradeList, columns=['ticker', 'price', 'trading_volume', 'trading_amount', 'trading_date'])
             #print(dfDayTrade)
-            dfMergeData = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
+            dfDayProgramData = pd.DataFrame(self.DATA_DayProgramData,
+                                      columns=['ticker', 'program_trading_date', 'program_buy_amount', 'program_buy_count', 'program_sell_amount', 'program_sell_count'])
+            # print(dfDayProgramData)
 
-            #print(dfMergeData)
+            # data join
+            dfMergeData1 = pd.merge(dfStock, dfDayTrade, left_on='ticker', right_on='ticker', how='outer')
+            # print(dfMergeData1)
+            dfMergeData = pd.merge(dfMergeData1, dfDayProgramData, left_on='ticker', right_on='ticker', how='outer')
+            # print(dfMergeData)
             if dfMergeData.size > 0:
                 dfMergeData.to_excel(dfMergeData.at[0, 'trading_date'] +'.xlsx')
             else:
@@ -188,8 +222,8 @@ class KiwoomAPI(QAxWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     kiwwom = KiwoomAPI()
-    #kiwwom.getBasicData("005385")
     #kiwwom.getMyConditions()
+    #kiwwom.getBasicData("005385")
     #kiwwom.getDayData("005385")
-
+    #kiwwom.getDayProgramData("123570")
     kiwwom.getMyConditionData('기본')
