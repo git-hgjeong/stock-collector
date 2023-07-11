@@ -188,7 +188,7 @@ class KiwoomAPI(QAxWidget):
             dfDayTrade = pd.DataFrame(self.DATA_DayTradeList, columns=['ticker', 'price', 'trading_volume', 'trading_amount', 'trading_date'])
             #print(dfDayTrade)
             dfDayProgramData = pd.DataFrame(self.DATA_DayProgramData,
-                                      columns=['ticker', 'program_trading_date', 'program_buy_count', 'program_sell_count', 'program_count'])
+                                      columns=['ticker', 'program_trading_date', 'program_sell_count', 'program_buy_count', 'program_count'])
             # print(dfDayProgramData)
 
             # data join
@@ -218,7 +218,12 @@ class KiwoomAPI(QAxWidget):
         response = requests.post(url, headers=headers, data=requestData)
         print("response: ", response)
         print("response.text: ", response.text)
-        url = "https://dev592.cafe24.com/stock/attentions.php?from_date="+ dfMergeData.at[0, 'trading_date'] +"&to_date="+ dfMergeData.at[0, 'trading_date']
+
+        year = dfMergeData.at[0, 'trading_date'][0:4]
+        month = dfMergeData.at[0, 'trading_date'][4:6]
+        day = dfMergeData.at[0, 'trading_date'][6:]
+        trading_date = year +'-'+ month +'-'+ day
+        url = "https://dev592.cafe24.com/stock/daily-status.php?from_date="+ trading_date +"&to_date="+ trading_date
         print(url)
 
 if __name__ == "__main__":
